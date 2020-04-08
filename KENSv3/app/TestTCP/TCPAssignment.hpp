@@ -16,6 +16,9 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 
+#include <map>
+#include <iostream>
+#include <string>
 
 #include <E/E_TimerModule.hpp>
 
@@ -28,6 +31,7 @@ private:
 
 private:
 	virtual void timerCallback(void* payload) final;
+	std::map<int, SocketDiscriptor> socket_saver;
 
 public:
 	TCPAssignment(Host* host);
@@ -48,7 +52,22 @@ public:
 	static HostModule* allocate(Host* host) { return new TCPAssignment(host); }
 };
 
-}
+class SocketDiscriptor 
+{
+	private:
+		int socket_id;
+		int domain;
+		int type;
+		int protocol;
+
+	public:
+		SocketDiscriptor();
+		~SocketDiscriptor();
+		SocketDiscriptor(int pid, int domain, int type, int socket);
+		
+};
+
+};
 
 
 #endif /* E_TCPASSIGNMENT_HPP_ */

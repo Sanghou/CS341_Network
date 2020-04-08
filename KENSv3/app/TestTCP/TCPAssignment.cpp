@@ -41,15 +41,50 @@ void TCPAssignment::finalize()
 
 }
 
+SocketDiscriptor::SocketDiscriptor() {
+}
+
+SocketDiscriptor::~SocketDiscriptor() {	
+}
+
+SocketDiscriptor::SocketDiscriptor(int socket_id, int domain, int type, int protocol = 0) {
+	this->socket_id = socket_id;
+	this->domain = domain;
+	this->type = type;
+	this->protocol = protocol;
+}
+
 void TCPAssignment::systemCallback(UUID syscallUUID, int pid, const SystemCallParameter& param)
 {
 	switch(param.syscallNumber)
-	{
+	{		
 	case SOCKET:
-		//this->syscall_socket(syscallUUID, pid, param.param1_int, param.param2_int);
-		break;
+		{
+			const int socket_id = createFileDescriptor(pid);
+			
+			if (socket_id == -1) {
+				perror("Failure make socket");
+				returnSystemCall(syscallUUID, -1);
+			};
+
+			SocketDiscriptor s = SocketDiscriptor(socket_id, param.param1_int, param.param2_int);
+			//s를 관리 메모리에 넣어주기
+			socket_saver.insert(std::make_pair(pid,s));
+			returnSystemCall(syscallUUID, socket_id);
+
+			break;
+		}
 	case CLOSE:
-		//this->syscall_close(syscallUUID, pid, param.param1_int);
+		{
+			if (socket_saver.find(pid) == socket_saver.end()) {
+				returnSystemCall(syscallUUID, -1);
+			} else {
+				SocketDiscriptor s = socket_saver[pid];
+				int fd = s.socket_id;
+				removeFileDescriptor(pid, fd);	
+				returnSystemCall(syscallUUID, 0);
+			}
+		}
 		break;
 	case READ:
 		//this->syscall_read(syscallUUID, pid, param.param1_int, param.param2_ptr, param.param3_int);
@@ -69,11 +104,17 @@ void TCPAssignment::systemCallback(UUID syscallUUID, int pid, const SystemCallPa
 		//		static_cast<struct sockaddr*>(param.param2_ptr),
 		//		static_cast<socklen_t*>(param.param3_ptr));
 		break;
+
+		//PJ1
+		
 	case BIND:
 		//this->syscall_bind(syscallUUID, pid, param.param1_int,
 		//		static_cast<struct sockaddr *>(param.param2_ptr),
 		//		(socklen_t) param.param3_int);
 		break;
+
+		//PJ1
+
 	case GETSOCKNAME:
 		//this->syscall_getsockname(syscallUUID, pid, param.param1_int,
 		//		static_cast<struct sockaddr *>(param.param2_ptr),
